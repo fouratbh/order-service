@@ -51,3 +51,4 @@ jobs:
           
       - name: Deploy to K8s
         run: kubectl apply -f k8s/
+		continue-on-error: true
