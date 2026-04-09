@@ -34,7 +34,7 @@ jobs:
           mvn clean verify -DskipTests \
           org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
           -Dsonar.projectKey=order-service-key \
-          -Dsonar.organization=votre-nom-organisation \
+          -Dsonar.organization=fouratbh \
           -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
           -Dsonar.token=${{ secrets.SONAR_TOKEN }}
 
