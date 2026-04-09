@@ -1,54 +1,61 @@
-name: CI/CD Order Service
+name: CI/CD Pipeline for Order Service
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master  # Vérifie bien que ta branche Eclipse est "master" et pas "main"
 
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
 
-      # Analyse SonarQube
-      - name: SonarQube Scan
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Maven packages
+        uses: actions/checkout@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and Sonar Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: mvn verify -DskipTests org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        run: mvn clean verify -DskipTests org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
 
-      # Build & Push Docker
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
 
   deploy-to-k8s:
     needs: build-and-scan
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Set up Kubeconfig
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          
+
       - name: Deploy to K8s
         run: kubectl apply -f k8s/
-		continue-on-error: true
+        continue-on-error: true
