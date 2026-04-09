@@ -20,3 +20,5 @@ spec:
         env:
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:postgresql://votre-db-host:5432/order_db"
+				- name: KAFKA_SERVERS
+				  value: "my-kafka-broker:9092"
